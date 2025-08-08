@@ -1,9 +1,9 @@
 [package]
 name = "otolith"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-edition = "2021"
+description = "A music player."
+authors = ["neocapy", "yzhang2907"]
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,4 +23,4 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 watcher = { path = "../watcher" }
-
+fluent-uri = { version = "0", features = ["std", "serde"] }

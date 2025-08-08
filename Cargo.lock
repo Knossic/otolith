@@ -311,6 +311,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "borrow-or-share"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3eeab4423108c5d7c744f4d234de88d18d636100093ae04caf4825134b9c3a32"
+
+[[package]]
 name = "brotli"
 version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -962,6 +968,17 @@ checksum = "4a3d7db9596fecd151c5f638c0ee5d5bd487b6e0ea232e5dc96d5250f6f94b1d"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
+]
+
+[[package]]
+name = "fluent-uri"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1918b65d96df47d3591bed19c5cca17e3fa5d0707318e4b5ef2eae01764df7e5"
+dependencies = [
+ "borrow-or-share",
+ "ref-cast",
+ "serde",
 ]
 
 [[package]]
@@ -2565,6 +2582,7 @@ dependencies = [
 name = "otolith"
 version = "0.1.0"
 dependencies = [
+ "fluent-uri",
  "serde",
  "serde_json",
  "tauri",
@@ -4751,6 +4769,7 @@ name = "watcher"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "fluent-uri",
  "reqwest 0.11.27",
  "serde",
  "thiserror 1.0.69",

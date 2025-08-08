@@ -1,0 +1,9 @@
+---
+alwaysApply: true
+---
+- This is a Tauri project.
+- We use TypeScript, Vite, TailwindCSS v4, React, lucide-react.
+- The package manager is Yarn.
+    - Run with `yarn tauri dev` at root.
+- In Rust, we are on nightly 1.90.
+- The Rust project root is at ./src-tauri
