@@ -1,7 +1,7 @@
-mod backends;
+mod storage;
 mod universal_path;
 
-pub use backends::{
+pub use storage::{
     open_storage_for, EntryKind, EntryMetadata, Storage, StorageBackend, StorageCapabilities,
     StorageError,
 };

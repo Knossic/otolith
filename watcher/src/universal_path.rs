@@ -1,4 +1,4 @@
-use crate::backends::StorageBackend;
+use crate::storage::StorageBackend;
 use fluent_uri::{
     component::Scheme,
     encoding::{encoder::Path, EStr, EString},
