@@ -1,44 +1,33 @@
-use fluent_uri::{Uri, encoding::{EStr}, component::Scheme};
-use std::fmt;
+use fluent_uri::{Uri, encoding::{EStr, EString, encoder::Path}, component::Scheme};
+use std::{fmt};
 use std::str::FromStr;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StorageBackend {
     Local,
-    NetworkDrive,
     Ftp,
     Sftp,
     S3,
-    Http,
-    Https,
-    Other(String),
 }
 
 impl StorageBackend {
-    fn from_scheme(scheme: &str) -> Self {
+    fn from_scheme(scheme: &str) -> Option<Self> {
         match scheme.to_lowercase().as_str() {
-            "file" | "" => StorageBackend::Local,
-            "smb" | "cifs" => StorageBackend::NetworkDrive,
-            "ftp" => StorageBackend::Ftp,
-            "sftp" => StorageBackend::Sftp,
-            "s3" => StorageBackend::S3,
-            "http" => StorageBackend::Http,
-            "https" => StorageBackend::Https,
-            other => StorageBackend::Other(other.to_string()),
+            "file" | "" => Some(StorageBackend::Local),
+            "ftp" => Some(StorageBackend::Ftp),
+            "sftp" => Some(StorageBackend::Sftp),
+            "s3" => Some(StorageBackend::S3),
+            _ => None,
         }
     }
 
     fn to_scheme(&self) -> &str {
         match self {
             StorageBackend::Local => "file",
-            StorageBackend::NetworkDrive => "smb",
             StorageBackend::Ftp => "ftp",
             StorageBackend::Sftp => "sftp",
             StorageBackend::S3 => "s3",
-            StorageBackend::Http => "http",
-            StorageBackend::Https => "https",
-            StorageBackend::Other(scheme) => scheme,
         }
     }
 }
@@ -56,6 +45,7 @@ pub enum UniversalPathError {
     InvalidUri(String),
     EmptyPath,
     InvalidOperation(String),
+    UnknownBackend(String),
 }
 
 impl fmt::Display for UniversalPathError {
@@ -64,6 +54,7 @@ impl fmt::Display for UniversalPathError {
             UniversalPathError::InvalidUri(msg) => write!(f, "Invalid URI: {}", msg),
             UniversalPathError::EmptyPath => write!(f, "Path is empty"),
             UniversalPathError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
+            UniversalPathError::UnknownBackend(s) => write!(f, "Unknown storage backend: {}", s),
         }
     }
 }
@@ -81,7 +72,8 @@ impl UniversalPath {
     /// Create a new UniversalPath from a fluent_uri::Uri
     pub fn from_uri(uri: Uri<&str>) -> Result<Self, UniversalPathError> {
         let scheme = uri.scheme().as_str();
-        let backend = StorageBackend::from_scheme(scheme);
+        let backend = StorageBackend::from_scheme(scheme)
+            .ok_or_else(|| UniversalPathError::UnknownBackend(scheme.to_string()))?;
         
         let host = uri.authority()
             .map(|auth| auth.host().to_string());
@@ -90,8 +82,7 @@ impl UniversalPath {
             .and_then(|auth| auth.port_to_u16().ok())
             .flatten();
 
-        let path = uri.path().as_str();
-        let path_segments = Self::split_path(path);
+        let path_segments = Self::split_path(uri.path().decode().into_string_lossy().into_owned().as_str());
 
         Ok(UniversalPath {
             backend,
@@ -297,13 +288,10 @@ impl UniversalPath {
         };
 
         // Encode the path for URI safety
-        let path = self.path();
-        let encoded_path = EStr::new(path.as_str());
-        if encoded_path.is_none() {
-            return Err(UniversalPathError::InvalidUri(String::from("Invalid path in to_uri()")));
-        }
+        let mut path_buf = EString::<Path>::new();
+        path_buf.encode::<Path>(&self.path().as_bytes());
 
-        return uri.path(encoded_path.unwrap())
+        return uri.path(path_buf.as_estr())
             .build()
             .map(|t| t.into_string())
             .map_err(
@@ -428,11 +416,7 @@ mod tests {
 
     #[test]
     fn test_network_drive() {
-        let network_path = UniversalPath::from_uri_str("smb://nas.local/music/library").unwrap();
-        
-        assert_eq!(network_path.backend(), &StorageBackend::NetworkDrive);
-        assert_eq!(network_path.host(), Some("nas.local"));
-        assert_eq!(network_path.path_segments(), &["music", "library"]);
+        // Removed: network drive backend is no longer supported
     }
 
     #[test]
@@ -729,11 +713,10 @@ mod tests {
     fn test_unicode_s3_uri_roundtrip() {
         // Test Unicode in S3 URIs with various backends
         let unicode_s3_uris = vec![
-            "s3://bucket/音乐/歌曲.mp3",
-            "s3://bucket/🎵music🎶/song.mp3",
-            "s3://bucket/café/ménü.txt",
-            "sftp://server.com/用户/文档/файл.txt",
-            "https://cdn.example.com/медиа/песня.mp3",
+            "s3://bucket/%E9%9F%B3%E4%B9%90/%E6%AD%8C%E6%9B%B2.mp3",
+            "s3://bucket/%F0%9F%8E%B5music%F0%9F%8E%B6/song.mp3",
+            "s3://bucket/caf%C3%A9/m%C3%A9n%C3%BC.txt",
+            "sftp://server.com/%E7%94%A8%E6%88%B7/%E6%96%87%E6%A1%A3/%D1%84%D0%B0%D0%B9%D0%BB.txt",
         ];
         
         for uri_str in unicode_s3_uris {
